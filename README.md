@@ -1,4 +1,4 @@
-# MODA: Improving DNN Modularization via Activation-Driven Training
+# MODA: DNN Modularization via Activation-Driven Training
 
 ### Experiment Setup:
 - Ubuntu 20.04
