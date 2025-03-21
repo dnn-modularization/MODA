@@ -78,4 +78,4 @@ Arguments:
 - `target_epoch`=[1, 200]
 
 
-> To compare MODA with MwT, find the MwT's source code here https://github.com/icse2025-dnn-modularization/forked_MwT
+> To compare MODA with MwT, find the MwT's source code here https://github.com/dnn-modularization/forked_MwT
