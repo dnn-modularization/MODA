@@ -11,14 +11,19 @@ from dataset_loader.dataset_for_repair_exp.svhn_for_repair import \
 #     load_mixed_cifar100_cifar10_repair_dataset
 from dataset_loader.mnist import load_mnist_dataset
 from dataset_loader.svhn import load_svhn_dataset
+from dataset_loader.imagenet import load_imagenet_dataset 
 
-supported_std_datasets = ["cifar10", "cifar100", "svhn"]
+supported_std_datasets = ["cifar10", "cifar100", "svhn", "imagenet"]
 
 supported_repair_datasets = ["mixed_cifar10_for_repair", "mixed_svhn_for_repair"]
 
 
 def load_dataset(dataset_type, *args, **kwargs):
     default_dataset_dir = os.path.join(DatasetConfig.dataset_dir, dataset_type)
+    
+    # this configuration only applies to imagenet for now
+    train_augmentation = kwargs.pop("train_augmentation", False)
+
     if dataset_type == "mnist":
         return load_mnist_dataset(*args, dataset_dir=default_dataset_dir, **kwargs)
     elif dataset_type == "cifar10":
@@ -27,6 +32,8 @@ def load_dataset(dataset_type, *args, **kwargs):
         return load_cifar100_dataset(*args, dataset_dir=default_dataset_dir, **kwargs)
     elif dataset_type == "svhn":
         return load_svhn_dataset(*args, dataset_dir=default_dataset_dir, **kwargs)
+    elif dataset_type == "imagenet": 
+        return load_imagenet_dataset(*args, dataset_dir=default_dataset_dir, train_augmentation=train_augmentation, **kwargs)
     else:
         raise Exception(f"dataset is not supported: {dataset_type}")
 

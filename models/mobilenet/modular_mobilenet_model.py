@@ -185,6 +185,10 @@ def modular_mobilenet_generator(modular_layer_masks, model_params, modular_targe
     # print_model_summary(modular_model)
     modular_model_params = get_modular_model_params(model_params=model_params,
                                                     modular_model_cfg=modular_model_cfg)
+    # for running module analysis (see exp_analyis/module_analysis.py) to count overlap params (not needed for common use)
+    if next(iter(model_params.values())).dtype == torch.float64:
+        modular_model.float64_param = modular_model_params
+        
     modular_model.load_state_dict(modular_model_params)
 
     return modular_model

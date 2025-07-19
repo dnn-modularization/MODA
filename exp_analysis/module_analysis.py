@@ -1,11 +1,18 @@
-import copy
-import itertools
 import os
+import sys
+from pathlib import Path
+
+# ensure project root is on PYTHONPATH
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import argparse
+import itertools
 import random
 from collections import defaultdict
 
 import torch
 from torch import nn
+from tqdm import tqdm
 
 from configs import ModelConfig
 from dataset_loader import load_dataset
@@ -19,20 +26,16 @@ from models.model_evaluation_utils import evaluate_model
 DEVICE = get_runtime_device()
 
 
-def evaluate_modules(model_type, raw_model, modular_masks_path):
-    softmax_layer = get_model_leaf_layers(raw_model, return_with_layer_name=False)[-1]
-    assert isinstance(softmax_layer, nn.Linear)
-    model_num_classes = softmax_layer.out_features
+def evaluate_modules(model_type, raw_model, modular_masks_path, num_classes=10):
     model_param_count = count_parameters(raw_model)
 
-    all_classes__modular_layer_masks = torch.load(modular_masks_path)
-    # calculate_module_overlaps(raw_model, all_classes__modular_layer_masks)
+    # all_classes__modular_layer_masks = torch.load(modular_masks_path)
     trackable_params = generate_trackable_params(raw_model.state_dict())
     modules = []
     module_total_sizes = []
-    for curr_class in range(model_num_classes):
+    for curr_class in range(num_classes):
         curr_module = compose_model_from_modular_masks(model_type, trackable_params, modular_masks_path,
-                                                       model_num_classes, [curr_class])
+                                                       num_classes, [curr_class])
         modules.append(curr_module)
         curr_module_param_count = count_parameters(curr_module)
         module_total_sizes.append(curr_module_param_count / model_param_count)
@@ -59,27 +62,41 @@ def generate_trackable_params(raw_model_params):
         new_tensor = torch.arange(unique_number, unique_number + numel, dtype=torch.float64)
         unique_number += numel
         trackable_model_params[param_name] = new_tensor.view(params.shape)
+    
+    all_flattened = torch.cat([p.flatten() for p in trackable_model_params.values()])
+    unique_flattened = torch.unique(all_flattened)
+    assert len(unique_flattened) == unique_number, (
+        f"Expected {unique_number} unique values, got {len(unique_flattened)}"
+    )
 
     return trackable_model_params
 
 
 def calculate_overlap_params(modules, model_param_count):
     flatten_module_params = []
-    for m in modules:
-        flatten_param_set = set()
-        for p in m.parameters():
-            flatten_param_set.update(p.view(-1).tolist())
+    for m in tqdm(modules, desc="Flattening module params"):
+        flatten_param_list = []
+        assert next(iter(m.float64_param.values())).dtype == torch.float64, \
+            "m.float64_param must be float64 to keep the uniqueness of the ids, " \
+            "float32 will give duplicate ids as its range is limited"
+        flatten_param_list = torch.cat([p.view(-1) for p in m.float64_param.values()]).int().tolist()
+        flatten_param_set = set(flatten_param_list)
+        # Check uniqueness
+        assert len(flatten_param_set) == len(flatten_param_list), f"Non-unique params in module {i}"
         flatten_module_params.append(flatten_param_set)
+
+        del m
 
     # Calculate all combinations of modules
     indices_combinations = list(itertools.combinations(range(len(flatten_module_params)), 2))
 
     # 357 = sampling from population of [4950 indices_combinations] with confidence level of 95%, margin of error 5%
-    # indices_combinations = random.sample(indices_combinations, k=357)
+    if len(flatten_module_params) == 100:
+        indices_combinations = random.sample(indices_combinations, k=357)
 
     print("indices_combinations", len(indices_combinations))
     overlap_sizes = []
-    for module1_index, module2_index in indices_combinations:
+    for module1_index, module2_index in tqdm(indices_combinations, desc="Calculating overlaps"):
         module1_params = flatten_module_params[module1_index]
         module2_params = flatten_module_params[module2_index]
         curr_intersection = len(module1_params & module2_params)
@@ -88,58 +105,42 @@ def calculate_overlap_params(modules, model_param_count):
     return overlap_sizes
 
 
-def calculate_module_overlaps(raw_model, all_classes__modular_layer_masks):
-    mask_split_lengths = [len(m) for m in all_classes__modular_layer_masks[0]]
-    flatten_masks = torch.stack([torch.cat(class_mask)
-                                 for class_mask in all_classes__modular_layer_masks.values()]).to(DEVICE)
-
-    # Calculate all combinations of indices
-    indices_combinations = list(itertools.combinations(range(len(flatten_masks)), 2))
-
-    # Extract the masks for each combination
-    mask1_indices, mask2_indices = zip(*indices_combinations)
-    masks1 = torch.stack([flatten_masks[i] for i in mask1_indices])
-    masks2 = torch.stack([flatten_masks[i] for i in mask2_indices])
-
-    intersection = masks1 & masks2
-    union = masks1 | masks2
-
-    overlaps = []
-    by_layer_intersection = []
-    by_layer_union = []
-    start_i = 0
-
-    model_layer_dict = {l_name: l for l_name, l in get_model_leaf_layers(raw_model, return_with_layer_name=True)}
-    for ms_len in mask_split_lengths:
-        end_i = start_i + ms_len
-        by_layer_jaccard_index = (intersection[:, start_i:end_i].sum(dim=1) /
-                                  union[:, start_i:end_i].sum(dim=1)).mean().detach().item()
-        overlaps.append(by_layer_jaccard_index)
-        start_i = end_i
-
-    return overlaps
-
-
 def main():
-    activation_rate_threshold = 0.1
+    activation_rate_threshold = 0.9
 
-    # dataset_type, num_classes = "svhn", 10
-    dataset_type, num_classes = "cifar10", 10
-    # dataset_type, num_classes = "cifar100", 100
+    parser = argparse.ArgumentParser(description="Module Analysis")
+    parser.add_argument('--model', type=str, default="vgg16", choices=["vgg16", "resnet18", "mobilenet"], help="Model architecture")
+    parser.add_argument('--dataset', type=str, default="imagenet", choices=["svhn", "cifar10", "cifar100", "imagenet"], help="Dataset name")
+    args = parser.parse_args()
 
-    model_type = "vgg16"
-    # model_type = "resnet18"
-    # model_type = "mobilenet"
+    model_name = args.model
+    dataset_name = args.dataset
 
-    checkpoint_path = f"./temp/{model_type}_{dataset_type}/model__bs128__ep200__lr0.05__aff1.0_dis1.0_comp0.3/model.pt"
+    if dataset_name in ["cifar10", "svhn"]:
+        num_classes = 10
+    elif dataset_name in ["cifar100", "imagenet"]:
+        num_classes = 100
+    else:
+        raise ValueError(f"Unknown dataset_name: {dataset_name}")
+
+    checkpoint_dir = f"{ModelConfig.model_checkpoint_dir}/{model_name}_{dataset_name}/"
+    checkpoint_dir = os.path.join(
+        checkpoint_dir,
+        "model__bs128__ep200__lr0.05__aff1.0_dis1.0_comp0.3"
+    )
+    checkpoint_path = [
+        entry.path for entry in os.scandir(checkpoint_dir)
+        if entry.is_dir() and entry.name.startswith("v")
+    ][-1] + "/model.pt"
+
     print(activation_rate_threshold, checkpoint_path)
 
     modular_masks_save_path = checkpoint_path + f".mod_mask.thres{activation_rate_threshold}.pt"
 
-    raw_model = create_modular_model(model_type=model_type, num_classes=num_classes,
+    raw_model = create_modular_model(model_type=model_name, num_classes=num_classes,
                                      modular_training_mode=True)
 
-    evaluate_modules(model_type=model_type,
+    evaluate_modules(model_type=model_name,
                      raw_model=raw_model,
                      modular_masks_path=modular_masks_save_path)
 

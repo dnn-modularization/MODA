@@ -80,14 +80,14 @@ def add_norm_output_layer_to_model(model, data_loader):
 
 
 def repair_model_by_adding_calibration_layer(weak_model, strong_module, patch_output_index, calibration_data_loader,
-                                             test_loader):
+                                             test_loader, num_epochs=5):
     repaired_model = RepairedModel(weak_model, strong_module, patch_output_index)
     repaired_model.to(DEVICE)
 
     _ = train(model=repaired_model,
               train_loader=calibration_data_loader, test_loader=test_loader,
               modular_params=defaultdict(float), learning_rate=0.05,
-              num_epochs=20, checkpoint_every_n_epochs=-1,
+              num_epochs=num_epochs, checkpoint_every_n_epochs=-1,
               checkpoint_dir=None, tensorboard_writer=None)
     # torch.save(repaired_model.state_dict(), "./repair_weights/MC1.pt")
 
@@ -204,7 +204,8 @@ def main():
                                                                   strong_module=strong_module,
                                                                   patch_output_index=num_classes - 1,
                                                                   calibration_data_loader=train_loader,
-                                                                  test_loader=test_loader)
+                                                                  test_loader=test_loader,
+                                                                  num_epochs=args.target_epoch)
     for model_name, model in dict(weak_model=weak_model, repaired_model=repaired_model).items():
         test_acc = evaluate_model_per_class(model, test_loader, device=DEVICE,
                                             num_classes=num_classes, acc_in_percent=False,

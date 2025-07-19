@@ -1,0 +1,100 @@
+n02701002 ambulance
+n01773549 barn spider, Araneus cavaticus
+n02804610 bassoon
+n01682714 American chameleon, anole, Anolis carolinensis
+n09229709 bubble
+n11879895 rapeseed
+n04532670 viaduct
+n03777568 Model T
+n02093754 Border terrier
+n02916936 bulletproof vest
+n04049303 rain barrel
+n02939185 caldron, cauldron
+n01667114 mud turtle
+n02108915 French bulldog
+n03814639 neck brace
+n07754684 jackfruit, jak, jack
+n04116512 rubber eraser, rubber, pencil eraser
+n07760859 custard apple
+n03085013 computer keyboard, keypad
+n07745940 strawberry
+n13052670 hen-of-the-woods, hen of the woods, Polyporus frondosus, Grifola frondosa
+n02802426 basketball
+n02483362 gibbon, Hylobates lar
+n04604644 worm fence, snake fence, snake-rail fence, Virginia fence
+n02226429 grasshopper, hopper
+n04125021 safe
+n04536866 violin, fiddle
+n04335435 streetcar, tram, tramcar, trolley, trolley car
+n01828970 bee eater
+n02074367 dugong, Dugong dugon
+n02105162 malinois
+n02655020 puffer, pufferfish, blowfish, globefish
+n03930313 picket fence, paling
+n03207743 dishrag, dishcloth
+n02727426 apiary, bee house
+n04254120 soap dispenser
+n03617480 kimono
+n07892512 red wine
+n03873416 paddle, boat paddle
+n01698640 American alligator, Alligator mississipiensis
+n15075141 toilet tissue, toilet paper, bathroom tissue
+n02114548 white wolf, Arctic wolf, Canis lupus tundrarum
+n04540053 volleyball
+n04090263 rifle
+n03935335 piggy bank, penny bank
+n02640242 sturgeon
+n04252077 snowmobile
+n02397096 warthog
+n02097298 Scotch terrier, Scottish terrier, Scottie
+n02841315 binoculars, field glasses, opera glasses
+n04485082 tripod
+n07590611 hot pot, hotpot
+n02130308 cheetah, chetah, Acinonyx jubatus
+n01675722 banded gecko
+n03016953 chiffonier, commode
+n04067472 reel
+n03297495 espresso maker
+n04366367 suspension bridge
+n02988304 CD player
+n03424325 gasmask, respirator, gas helmet
+n03494278 harmonica, mouth organ, harp, mouth harp
+n03133878 Crock Pot
+n02088094 Afghan hound, Afghan
+n03954731 plane, carpenter's plane, woodworking plane
+n02006656 spoonbill
+n03047690 clog, geta, patten, sabot
+n02100236 German short-haired pointer
+n04523525 vault
+n04367480 swab, swob, mop
+n02113799 standard poodle
+n02356798 fox squirrel, eastern fox squirrel, Sciurus niger
+n07742313 Granny Smith
+n03447721 gong, tam-tam
+n07583066 guacamole
+n02690373 airliner
+n02447366 badger
+n04612504 yawl
+n04141327 scabbard
+n02231487 walking stick, walkingstick, stick insect
+n03000684 chain saw, chainsaw
+n03063689 coffeepot
+n01704323 triceratops
+n01749939 green mamba
+n01614925 bald eagle, American eagle, Haliaeetus leucocephalus
+n02791270 barbershop
+n02794156 barometer
+n01484850 great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias
+n03924679 photocopier
+n03527444 holster
+n02110806 basenji
+n02114712 red wolf, maned wolf, Canis rufus, Canis niger
+n02037110 oystercatcher, oyster catcher
+n01530575 brambling, Fringilla montifringilla
+n07802026 hay
+n04330267 stove
+n03884397 panpipe, pandean pipe, syrinx
+n01990800 isopod
+n01833805 hummingbird
+n01742172 boa constrictor, Constrictor constrictor
+n03196217 digital clock

@@ -65,9 +65,10 @@ def evaluate_modularization_performance(std_model, modular_model, composed_model
 
 def compose_model_from_modular_masks(model_type, modular_model_params, modular_masks_path, orig_num_classes,
                                      target_classes):
-    all_classes__modular_layer_masks = torch.load(modular_masks_path)
+    all_classes__modular_layer_masks = torch.load(modular_masks_path, weights_only=False)
     target_classes__modular_layer_masks = build_module_masks_for_target_classes(all_classes__modular_layer_masks,
                                                                                 orig_num_classes, target_classes)
+    
     composed_model = compose_model_from_module_masks(model_type, modular_model_params,
                                                      target_classes__modular_layer_masks,
                                                      target_classes)
@@ -100,6 +101,26 @@ def calculate_modular_layer_masks(model, data_loader, num_classes, save_path, ac
             valid_act = layer_act_rate >= activation_rate_threshold
             all_classes__layer_masks[each_class].append(valid_act.cpu())
 
+    # Some class's modules don't have any (or very few) active neurons in a specific layer after applying frequency threshold 
+    # -> This makes some modules less effective
+    # -> FIX: Ensure at least k% neurons active per class/layer
+    min_active_neuron_fraction = 0.005
+    for each_class, all_layer_act_rates in all_classes__activation_rates.items():
+        for layer_idx, layer_act_rate in all_layer_act_rates.items():
+            mask = all_classes__layer_masks[each_class][layer_idx]
+            min_req = max(1, int(min_active_neuron_fraction * layer_act_rate.numel()))
+            if mask.sum() < min_req:
+                # Find max active neurons for this layer across all classes
+                k = max([all_classes__layer_masks[c][layer_idx].sum().item() 
+                       for c in all_classes__layer_masks.keys()])
+                k = max(k, min_req)
+                topk = torch.topk(layer_act_rate, k).indices
+                new_mask = torch.zeros_like(layer_act_rate, dtype=torch.bool)
+                new_mask[topk] = True
+                all_classes__layer_masks[each_class][layer_idx] = new_mask.cpu()
+
+    all_classes__layer_masks = dict(all_classes__layer_masks)
+
     if not os.path.exists(save_path):
         torch.save(all_classes__layer_masks, save_path)
     else:
@@ -117,7 +138,8 @@ def generate_model_composition_tasks(num_classes):
             yield target_classes
     elif num_classes == 100:
         # if the file is not found, generate it by running the script exp_analysis/model_composition_sampler.py
-        with open(os.path.join(BaseConfig.project_dir, "target_classes.num_classes_100.sample.list"), "r") as in_f:
+        # with open(os.path.join(BaseConfig.project_dir, "target_classes.num_classes_100.sample.list"), "r") as in_f:
+        with open(os.path.join(BaseConfig.project_dir, "target_classes.num_classes_100.rep_tasks.list"), "r") as in_f:
             for line in in_f:
                 yield [int(c) for c in line.strip().split()]
     else:
@@ -141,15 +163,14 @@ def main():
 
     raw_checkpoint_dir = os.path.join(model_checkpoint_dir, f"model__bs128__ep200__lr0.05__aff0.0_dis0.0_comp0.0")
     raw_checkpoint_path = [entry.path for entry in os.scandir(raw_checkpoint_dir)
-                           if entry.is_dir() and entry.name.startswith("v")][-1] + "/model.pt"
-
+                          if entry.is_dir() and entry.name.startswith("v")][-1] + "/model.pt"
     print(f"\nModularization process started]\n"
           f"----\nStd_model_checkpoint_path: {raw_checkpoint_path}\n"
           f"----\nMod_model_checkpoint_path: {mod_checkpoint_path}\n"
           f"----\n")
 
     num_classes, train_loader, _ = load_dataset(dataset_type=dataset_type, batch_size=batch_size,
-                                                num_workers=2)
+                                                num_workers=2, train_augmentation=False)
 
     # load standard model
     std_model = create_modular_model(model_type=model_type, num_classes=num_classes,
@@ -164,6 +185,7 @@ def main():
 
     # load modules
     modular_masks_save_path = mod_checkpoint_path + f".mod_mask.thres{activation_rate_threshold}.pt"
+    print(modular_masks_save_path)
     if not os.path.exists(modular_masks_save_path):
         calculate_modular_layer_masks(model=mod_model, data_loader=train_loader, num_classes=num_classes,
                                       save_path=modular_masks_save_path,
@@ -172,7 +194,7 @@ def main():
     # if True:
     for target_classes in generate_model_composition_tasks(num_classes=num_classes):
         _, _, test_loader = load_dataset(dataset_type=dataset_type, target_classes=target_classes,
-                                         batch_size=batch_size, num_workers=2)
+                                         batch_size=batch_size, num_workers=2, train_augmentation=False)
         print(f"[Dataset {dataset_type}]- Test Dim {test_loader.dataset.data.shape}")
         composed_model = modularize_and_compose_model(model_type=model_type,
                                                       modular_model=mod_model,

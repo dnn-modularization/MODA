@@ -96,7 +96,7 @@ def make_conv_layers(cfg: List[Union[str, int]], batch_norm: bool = False) -> nn
 
 def make_classifier_layers(cfg: List[Union[str, int]], input_dim, num_classes):
     layers: List[nn.Module] = []
-    curr_input_dim = input_dim
+    curr_input_dim = input_dim * 7 * 7 # the "* 7 * 7" is for imagenet only
     for v in cfg:
         v = cast(int, v)
         layers += [nn.Linear(curr_input_dim, v), nn.ReLU(inplace=True)]

@@ -13,10 +13,6 @@ def _modular_vgg(cfg: str, batch_norm: bool,
                  **kwargs: Any) -> VGG:
     kwargs['init_weights'] = False
 
-    # **IMPORTANT**
-    # make sure classes are sorted in incremental order (e.g., [0,1,2,3])
-    # because module parameters are extracted based on this order
-    # wrong order leads to wrong loaded params -> very low classification accuracy of extracted modules
     module_conv_cfg, module_classifier_cfg = get_modular_model_cfg(modular_layer_masks, conv_cfgs[cfg],
                                                                    classifier_cfgs["A"])
     modular_model = VGG(features=make_conv_layers(module_conv_cfg, batch_norm=batch_norm),
@@ -25,7 +21,12 @@ def _modular_vgg(cfg: str, batch_norm: bool,
                         **kwargs)
     modular_model_params = get_modular_model_params(model_params=model_params,
                                                     modular_layer_masks=modular_layer_masks)
+    # for running module analysis (see exp_analyis/module_analysis.py) to count overlap params (not needed for common use)
+    if next(iter(model_params.values())).dtype == torch.float64:
+        modular_model.float64_param = modular_model_params
+
     modular_model.load_state_dict(modular_model_params)
+    
 
     return modular_model
 
@@ -67,7 +68,20 @@ def get_modular_model_params(model_params, modular_layer_masks):
 
         # update num of kernels to fit input dim (start from 2nd layer and only apply to Conv or FC layers)
         if curr_layer_index > 0 and len(modular_layer_params.shape) >= 2:
-            modular_layer_params = modular_layer_params[:, modular_layer_masks[curr_layer_index - 1]]
+            prev_layer_mask = modular_layer_masks[curr_layer_index - 1]
+            
+            if modular_layer_params.shape[1] != prev_layer_mask.shape[0]:
+                # Conv-to-FC transition: expand channel mask to match flattened input
+                prev_conv_original_output_channels = prev_layer_mask.shape[0]
+                spatial_size = modular_layer_params.shape[1] // prev_conv_original_output_channels
+                spatial_h = spatial_w = int(spatial_size ** 0.5)
+                
+                mask_3d = prev_layer_mask.view(prev_conv_original_output_channels, 1, 1).expand(prev_conv_original_output_channels, spatial_h, spatial_w)
+                expanded_mask = torch.flatten(mask_3d, 0)
+                modular_layer_params = modular_layer_params[:, expanded_mask]
+            else:
+                # Regular case: direct mask application
+                modular_layer_params = modular_layer_params[:, prev_layer_mask]
 
         # update num of kernels to fit output dim
         modular_layer_params = modular_layer_params[modular_layer_masks[curr_layer_index]]
