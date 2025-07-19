@@ -139,4 +139,10 @@ Arguments:
 - `target_epoch`=[1, 200]
 
 
-> To compare MODA with MwT, find the MwT's source code here https://github.com/dnn-modularization/forked_MwT
+### Baselines
+
+To compare MODA with selected approaches, see the following forked repositories:
+
+- [MwT](https://github.com/dnn-modularization/forked_MwT)
+- [GradSplitter](https://github.com/dnn-modularization/forked_GradSplitter)
+- [INCITE](https://github.com/dnn-modularization/forked_INCITE)
