@@ -9,7 +9,6 @@ from dataset_loader.dataset_for_repair_exp.svhn_for_repair import \
     load_weak_svhn_for_repair_dataset, load_strong_svhn_for_repair_dataset
 # from dataset_loader.dataset_for_repair_exp.mixed_cifar100_cifar10 import \
 #     load_mixed_cifar100_cifar10_repair_dataset
-from dataset_loader.mnist import load_mnist_dataset
 from dataset_loader.svhn import load_svhn_dataset
 from dataset_loader.imagenet import load_imagenet_dataset 
 
@@ -24,9 +23,7 @@ def load_dataset(dataset_type, *args, **kwargs):
     # this configuration only applies to imagenet for now
     train_augmentation = kwargs.pop("train_augmentation", False)
 
-    if dataset_type == "mnist":
-        return load_mnist_dataset(*args, dataset_dir=default_dataset_dir, **kwargs)
-    elif dataset_type == "cifar10":
+    if dataset_type == "cifar10":
         return load_cifar10_dataset(*args, dataset_dir=default_dataset_dir, **kwargs)
     elif dataset_type == "cifar100":
         return load_cifar100_dataset(*args, dataset_dir=default_dataset_dir, **kwargs)
@@ -70,5 +67,4 @@ def load_repair_dataset(for_model, dataset_type, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    load_dataset("mnist", batch_size=128)
-    # load_dataset("svhn", batch_size=128)
+    load_dataset("svhn", batch_size=128)

@@ -16,9 +16,9 @@ class PlaceholderBatchNorm2d(nn.Module):
         return x
 
 
-def create_weak_model(model_type, num_classes, modular_training_mode=False):
+def create_weak_model(model_type, num_classes, input_size=(3, 32, 32), modular_training_mode=False):
     if model_type == "vgg16":
-        model = VGG16(num_classes=num_classes, batch_norm=False, pretrained=False)
+        model = VGG16(num_classes=num_classes, input_size=input_size, batch_norm=False, pretrained=False)
     elif model_type == "resnet18":
         model = ResNet18(num_classes=num_classes, norm_layer=PlaceholderBatchNorm2d)
     elif model_type == "lenet5":

@@ -49,8 +49,9 @@ def load_a_module_from_strong_model(model_type, model_checkpoint_dir,
     strong_model_checkpoint_path = os.path.join(model_checkpoint_dir, "strong_model.pt")
     strong_model_modular_mask_path = os.path.join(model_checkpoint_dir,
                                                   f"strong_model.pt.mod_mask.thres{activation_rate_threshold}.pt")
+    # Get input_size from current context - it's available from the calling function
     strong_model = create_modular_model(model_type=model_type, num_classes=orig_num_classes,
-                                        modular_training_mode=True)
+                                        input_size=(3, 32, 32), modular_training_mode=True)
     strong_model.load_pretrained_weights(strong_model_checkpoint_path)
     # print(evaluate_model_per_class(strong_model, test_loader, num_classes=orig_num_classes, device=DEVICE))
 
@@ -61,7 +62,8 @@ def load_a_module_from_strong_model(model_type, model_checkpoint_dir,
 
     module = compose_model_from_modular_masks(model_type, modular_model_params=strong_model.state_dict(),
                                               modular_masks_path=strong_model_modular_mask_path,
-                                              orig_num_classes=orig_num_classes, target_classes=[module_class, ])
+                                              orig_num_classes=orig_num_classes, target_classes=[module_class, ],
+                                              input_size=(3, 32, 32))
 
     if add_norm_output_layer:
         module = add_norm_output_layer_to_model(module, train_loader)
@@ -124,7 +126,7 @@ def load_strong_module(args, add_norm_output_layer=False):
     # strong_model_type = "vgg16"  # args.model  # could be another
     # strong_model_type = "resnet18"  # args.model  # could be another
     # strong_model_type = args.model  # could be another
-    num_classes, train_loader, test_loader = load_repair_dataset(for_model="strong",
+    input_size, num_classes, train_loader, test_loader = load_repair_dataset(for_model="strong",
                                                                  dataset_type=args.dataset,
                                                                  batch_size=args.batch_size,
                                                                  num_workers=args.dataloader_num_workers)
@@ -145,7 +147,7 @@ def load_strong_module(args, add_norm_output_layer=False):
 
 def load_weak_model(args, add_norm_output_layer=False):
     # load weak model
-    num_classes, weak_model_train_loader, _ = load_repair_dataset(for_model="weak",
+    input_size, num_classes, weak_model_train_loader, _ = load_repair_dataset(for_model="weak",
                                                                   dataset_type=args.dataset,
                                                                   batch_size=args.batch_size,
                                                                   num_workers=args.dataloader_num_workers,
@@ -157,7 +159,7 @@ def load_weak_model(args, add_norm_output_layer=False):
                                               f"weak_model.mc{args.mixed_class}.at_ep{args.target_epoch}.pt")
     # weak_model_checkpoint_path = os.path.join(weak_model_checkpoint_dir,
     #                                           f"weak_model.mc{args.mixed_class}.pt")
-    weak_model = create_weak_model(model_type=args.weak_model, num_classes=num_classes)
+    weak_model = create_weak_model(model_type=args.weak_model, num_classes=num_classes, input_size=(3, 32, 32))
     weak_model.load_pretrained_weights(weak_model_checkpoint_path)
 
     # weak_model = add_norm_output_layer_to_model(weak_model, weak_model_train_loader)
@@ -179,7 +181,7 @@ def main():
     # args.mixed_class = 0
     # args.target_epoch = 190
     # args.target_epoch = 10
-    num_classes, train_loader, test_loader = load_repair_dataset(for_model="weak",
+    input_size, num_classes, train_loader, test_loader = load_repair_dataset(for_model="weak",
                                                                  dataset_type=args.dataset,
                                                                  batch_size=args.batch_size,
                                                                  num_workers=args.dataloader_num_workers,
@@ -205,15 +207,15 @@ def main():
                                                                   patch_output_index=num_classes - 1,
                                                                   calibration_data_loader=train_loader,
                                                                   test_loader=test_loader,
-                                                                  num_epochs=args.target_epoch)
+                                                                  num_epochs=5)
     for model_name, model in dict(weak_model=weak_model, repaired_model=repaired_model).items():
         test_acc = evaluate_model_per_class(model, test_loader, device=DEVICE,
                                             num_classes=num_classes, acc_in_percent=False,
                                             show_progress=False)
         print(f"\r[MC{args.mixed_class}-{model_name}]".ljust(25) +
-              f"{round(test_acc[-1] * 100, 2)}",
-              f"\t{round(np.mean(test_acc[:-1]) * 100, 2)}",
-              f"\t{[round(c_acc * 100, 2) for c_acc in test_acc]}")
+              f"TC's accuracy: {round(test_acc[-1] * 100, 2)}",
+              f"- Non-TCs' avg accuracy: {round(np.mean(test_acc[:-1]) * 100, 2)}")
+            #   f"\t{[round(c_acc * 100, 2) for c_acc in test_acc]}")
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 
 def create_dataset_loader(train_dataset, test_dataset, target_classes, sample_size_per_class,
-                          shuffle=True, batch_size=128, num_workers=2):
+                          shuffle=True, batch_size=128, num_workers=2, input_size=None):
     num_classes = len(train_dataset.classes)
 
     do_filter = target_classes or sample_size_per_class
@@ -27,7 +27,7 @@ def create_dataset_loader(train_dataset, test_dataset, target_classes, sample_si
                              num_workers=num_workers,
                              pin_memory=True)
 
-    return num_classes, train_loader, test_loader
+    return input_size, num_classes, train_loader, test_loader
 
 
 def filter_dataset(dataset, target_classes, sample_size_per_class, transform_label=False):

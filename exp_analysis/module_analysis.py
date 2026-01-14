@@ -26,7 +26,7 @@ from models.model_evaluation_utils import evaluate_model
 DEVICE = get_runtime_device()
 
 
-def evaluate_modules(model_type, raw_model, modular_masks_path, num_classes=10):
+def evaluate_modules(model_type, raw_model, modular_masks_path, num_classes=10, input_size=(3, 32, 32)):
     model_param_count = count_parameters(raw_model)
 
     # all_classes__modular_layer_masks = torch.load(modular_masks_path)
@@ -35,7 +35,7 @@ def evaluate_modules(model_type, raw_model, modular_masks_path, num_classes=10):
     module_total_sizes = []
     for curr_class in range(num_classes):
         curr_module = compose_model_from_modular_masks(model_type, trackable_params, modular_masks_path,
-                                                       num_classes, [curr_class])
+                                                       num_classes, [curr_class], input_size=input_size)
         modules.append(curr_module)
         curr_module_param_count = count_parameters(curr_module)
         module_total_sizes.append(curr_module_param_count / model_param_count)
@@ -116,12 +116,11 @@ def main():
     model_name = args.model
     dataset_name = args.dataset
 
-    if dataset_name in ["cifar10", "svhn"]:
-        num_classes = 10
-    elif dataset_name in ["cifar100", "imagenet"]:
-        num_classes = 100
-    else:
-        raise ValueError(f"Unknown dataset_name: {dataset_name}")
+    input_size, num_classes, _, _ = load_dataset(
+        dataset_type=dataset_name,
+        batch_size=128,
+        num_workers=2
+    )
 
     checkpoint_dir = f"{ModelConfig.model_checkpoint_dir}/{model_name}_{dataset_name}/"
     checkpoint_dir = os.path.join(
@@ -138,11 +137,13 @@ def main():
     modular_masks_save_path = checkpoint_path + f".mod_mask.thres{activation_rate_threshold}.pt"
 
     raw_model = create_modular_model(model_type=model_name, num_classes=num_classes,
-                                     modular_training_mode=True)
+                                     input_size=input_size, modular_training_mode=True)
 
     evaluate_modules(model_type=model_name,
                      raw_model=raw_model,
-                     modular_masks_path=modular_masks_save_path)
+                     modular_masks_path=modular_masks_save_path,
+                     num_classes=num_classes,
+                     input_size=input_size)
 
 
 if __name__ == '__main__':

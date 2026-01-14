@@ -39,17 +39,24 @@ def main():
 
     model_checkpoint_dir, tensorboard_logdir, runtime_logdir = build_related_dirs(args, run_version,
                                                                                   skip_if_checkpoint_exists=False)
+    
+    print(f"\n[Training process started]\n"
+          f"----\nmodel_checkpoint_dir: {model_checkpoint_dir}\n"
+          f"----\ntensorboard_logdir: {tensorboard_logdir}\n"
+          f"----\nruntime_logdir: {runtime_logdir}\n"
+          f"----\n")
+    
     iter_num_classes = 5
     for mixed_class in range(iter_num_classes):
         run_version_mc = f"{run_version}.mc{mixed_class}"
         tensorboard_log_writer = SummaryWriter(tensorboard_logdir, filename_suffix=f".{run_version_mc}")
         runtime_log_writer = redirect_stdout_to_file(runtime_logdir, f"{Path(__file__).stem}.{run_version_mc}.log")
-        num_classes, train_loader, test_loader = load_repair_dataset(for_model="weak",
+        input_size, num_classes, train_loader, test_loader = load_repair_dataset(for_model="weak",
                                                                      dataset_type=args.dataset,
                                                                      batch_size=args.batch_size,
                                                                      num_workers=args.dataloader_num_workers,
                                                                      mixed_class=mixed_class)
-        model = create_weak_model(model_type=args.model, num_classes=num_classes, modular_training_mode=True)
+        model = create_weak_model(model_type=args.model, num_classes=num_classes, input_size=input_size, modular_training_mode=True)
 
         print(args.__dict__)
         print_model_summary(model)
@@ -59,7 +66,6 @@ def main():
               f"- Mixed Class {mixed_class}")
 
         # modular_params = defaultdict(float)
-        # modular_params = {"wf_affinity": 0.5, "wf_dispersion": 0.5, "wf_compactness": 0.5}
         modular_params = {"wf_affinity": 1.0, "wf_dispersion": 1.0, "wf_compactness": 0.3}
         model = train(model=model,
                       train_loader=train_loader, test_loader=test_loader,

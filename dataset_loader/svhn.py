@@ -8,6 +8,7 @@ from dataset_loader.dataset_utils import create_dataset_loader
 
 _SVHN_MEAN = [0.485, 0.456, 0.406]
 _SVHN_STD = [0.229, 0.224, 0.225]
+_SVHN_INPUT_SIZE = (3, 32, 32)
 
 
 class SVHN(BaseSVHN):
@@ -62,4 +63,4 @@ def load_svhn_dataset(batch_size, dataset_dir, num_workers=2, target_classes=Non
     train_dataset, test_dataset = _load_all_svhn_dataset(dataset_dir)
     return create_dataset_loader(train_dataset=train_dataset, test_dataset=test_dataset,
                                  target_classes=target_classes, sample_size_per_class=sample_size_per_class,
-                                 batch_size=batch_size, num_workers=num_workers)
+                                 batch_size=batch_size, num_workers=num_workers, input_size=_SVHN_INPUT_SIZE)

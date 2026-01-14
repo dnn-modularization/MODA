@@ -77,7 +77,7 @@ classifier_cfgs: Dict[str, List[Union[str, int]]] = {
 }
 
 
-def make_conv_layers(cfg: List[Union[str, int]], batch_norm: bool = False) -> nn.Sequential:
+def make_conv_layers(cfg: List[Union[str, int]], batch_norm: bool = False, input_size=(3, 32, 32)) -> tuple:
     layers: List[nn.Module] = []
     in_channels = 3
     for v in cfg:
@@ -91,16 +91,32 @@ def make_conv_layers(cfg: List[Union[str, int]], batch_norm: bool = False) -> nn
             else:
                 layers += [conv2d, nn.ReLU(inplace=True)]
             in_channels = v
-    return nn.Sequential(*layers)
+    
+    conv_layers = nn.Sequential(*layers)
+    
+    # Calculate final layer's flatten output dimension 
+    with torch.no_grad():
+        dummy_input = torch.zeros(1, *input_size)
+        conv_output = conv_layers(dummy_input)
+        flatten_dim = conv_output.view(1, -1).shape[1]
+    
+    return conv_layers, flatten_dim
 
 
 def make_classifier_layers(cfg: List[Union[str, int]], input_dim, num_classes):
+    """Creates classifier layers with pre-calculated flatten dimension.
+    
+    Args:
+        cfg: Classifier configuration (e.g., [4096, 4096] or [512, 512])
+        input_dim: Flattened dimension from the last (conv) layer output
+        num_classes: Number of output classes
+    """
     layers: List[nn.Module] = []
-    curr_input_dim = input_dim * 7 * 7 # the "* 7 * 7" is for imagenet only
+    curr_input_dim = input_dim
+    
     for v in cfg:
         v = cast(int, v)
         layers += [nn.Linear(curr_input_dim, v), nn.ReLU(inplace=True)]
-
         curr_input_dim = v
 
     layers += [nn.Linear(curr_input_dim, num_classes)]
@@ -108,12 +124,16 @@ def make_classifier_layers(cfg: List[Union[str, int]], input_dim, num_classes):
 
 
 def _vgg(arch: str, cfg: str, batch_norm: bool,
-         num_classes, model_urls: Dict[str, str],
+         num_classes, model_urls: Dict[str, str], input_size=(3, 32, 32),
          pretrained: bool = False, progress: bool = True, **kwargs: Any) -> VGG:
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(features=make_conv_layers(conv_cfgs[cfg], batch_norm=batch_norm),
-                classifier=make_classifier_layers(classifier_cfgs["A"], conv_cfgs[cfg][-2], num_classes=num_classes),
+    
+    # Create conv layers and get flatten dimension
+    conv_layers, flatten_dim = make_conv_layers(conv_cfgs[cfg], batch_norm=batch_norm, input_size=input_size)
+    
+    model = VGG(features=conv_layers,
+                classifier=make_classifier_layers(classifier_cfgs["A"], flatten_dim, num_classes),
                 **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],

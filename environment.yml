@@ -1,0 +1,17 @@
+name: MODA_env
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Core
+  - python=3.8.10
+  - pip
+
+  # CUDA stack
+  - cudatoolkit=10.2
+  - cudnn=7.6.5
+
+  # Pip dependencies
+  - pip:
+      - -r requirements.txt

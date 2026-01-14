@@ -7,6 +7,7 @@ from dataset_loader.dataset_utils import create_dataset_loader
 
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STD = [0.229, 0.224, 0.225]
+_IMAGENET_INPUT_SIZE = (3, 224, 224)
 
 def _get_transforms():  
     normalize = transforms.Normalize(mean=_IMAGENET_MEAN, std=_IMAGENET_STD)
@@ -61,4 +62,4 @@ def load_imagenet_dataset(batch_size, dataset_dir, train_augmentation=True,
     val_ds = ImageNetFolder(root=str(Path(dataset_dir) / 'val'), transform=val_tf)
     return create_dataset_loader(train_dataset=train_ds, test_dataset=val_ds, 
                                  sample_size_per_class=sample_size_per_class, batch_size=batch_size, 
-                                 num_workers=num_workers, target_classes=target_classes)
+                                 num_workers=num_workers, target_classes=target_classes, input_size=_IMAGENET_INPUT_SIZE)

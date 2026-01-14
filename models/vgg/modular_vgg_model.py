@@ -10,13 +10,17 @@ from models.vgg.vgg_model import VGG, make_conv_layers, make_classifier_layers, 
 
 def _modular_vgg(cfg: str, batch_norm: bool,
                  modular_layer_masks, model_params, modular_target_classes,
-                 **kwargs: Any) -> VGG:
+                 input_size=(3, 32, 32), **kwargs: Any) -> VGG:
     kwargs['init_weights'] = False
 
     module_conv_cfg, module_classifier_cfg = get_modular_model_cfg(modular_layer_masks, conv_cfgs[cfg],
                                                                    classifier_cfgs["A"])
-    modular_model = VGG(features=make_conv_layers(module_conv_cfg, batch_norm=batch_norm),
-                        classifier=make_classifier_layers(module_classifier_cfg, module_conv_cfg[-2],
+    
+    # Create conv layers and get flatten dimension
+    conv_layers, flatten_dim = make_conv_layers(module_conv_cfg, batch_norm=batch_norm, input_size=input_size)
+    
+    modular_model = VGG(features=conv_layers,
+                        classifier=make_classifier_layers(module_classifier_cfg, flatten_dim,
                                                           num_classes=len(modular_target_classes)),
                         **kwargs)
     modular_model_params = get_modular_model_params(model_params=model_params,

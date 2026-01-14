@@ -188,9 +188,9 @@ def main():
     tensorboard_log_writer = SummaryWriter(tensorboard_logdir, filename_suffix=f".{run_version}")
     runtime_log_writer = redirect_stdout_to_file(runtime_logdir, f"{Path(__file__).stem}.{run_version}.log")
 
-    num_classes, train_loader, test_loader = load_dataset(dataset_type=args.dataset, batch_size=args.batch_size,
+    input_size, num_classes, train_loader, test_loader = load_dataset(dataset_type=args.dataset, batch_size=args.batch_size,
                                                           num_workers=args.dataloader_num_workers)
-    model = create_modular_model(model_type=args.model, num_classes=num_classes,
+    model = create_modular_model(model_type=args.model, num_classes=num_classes, input_size=input_size,
                                  modular_training_mode=True)
 
     print(args.__dict__)

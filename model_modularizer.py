@@ -35,10 +35,10 @@ def get_args():
 
 @torch.no_grad()
 def modularize_and_compose_model(model_type, modular_model, modular_masks_path,
-                                 orig_num_classes, target_classes):
+                                 orig_num_classes, target_classes, input_size=(3, 32, 32)):
     target_classes = sorted(target_classes)
     composed_model = compose_model_from_modular_masks(model_type, modular_model.state_dict(), modular_masks_path,
-                                                      orig_num_classes, target_classes)
+                                                      orig_num_classes, target_classes, input_size=input_size)
     return composed_model
 
 
@@ -64,14 +64,14 @@ def evaluate_modularization_performance(std_model, modular_model, composed_model
 
 
 def compose_model_from_modular_masks(model_type, modular_model_params, modular_masks_path, orig_num_classes,
-                                     target_classes):
-    all_classes__modular_layer_masks = torch.load(modular_masks_path, weights_only=False)
+                                     target_classes, input_size=(3, 32, 32)):
+    all_classes__modular_layer_masks = torch.load(modular_masks_path)
     target_classes__modular_layer_masks = build_module_masks_for_target_classes(all_classes__modular_layer_masks,
                                                                                 orig_num_classes, target_classes)
     
     composed_model = compose_model_from_module_masks(model_type, modular_model_params,
                                                      target_classes__modular_layer_masks,
-                                                     target_classes)
+                                                     target_classes, input_size=input_size)
     return composed_model
 
 
@@ -138,8 +138,7 @@ def generate_model_composition_tasks(num_classes):
             yield target_classes
     elif num_classes == 100:
         # if the file is not found, generate it by running the script exp_analysis/model_composition_sampler.py
-        # with open(os.path.join(BaseConfig.project_dir, "target_classes.num_classes_100.sample.list"), "r") as in_f:
-        with open(os.path.join(BaseConfig.project_dir, "target_classes.num_classes_100.rep_tasks.list"), "r") as in_f:
+        with open(os.path.join(BaseConfig.resource_dir, "target_classes.num_classes_100.sample.list"), "r") as in_f:
             for line in in_f:
                 yield [int(c) for c in line.strip().split()]
     else:
@@ -169,17 +168,17 @@ def main():
           f"----\nMod_model_checkpoint_path: {mod_checkpoint_path}\n"
           f"----\n")
 
-    num_classes, train_loader, _ = load_dataset(dataset_type=dataset_type, batch_size=batch_size,
+    input_size, num_classes, train_loader, _ = load_dataset(dataset_type=dataset_type, batch_size=batch_size,
                                                 num_workers=2, train_augmentation=False)
 
     # load standard model
-    std_model = create_modular_model(model_type=model_type, num_classes=num_classes,
+    std_model = create_modular_model(model_type=model_type, num_classes=num_classes, input_size=input_size,
                                      modular_training_mode=False)
     std_model.load_pretrained_weights(raw_checkpoint_path)
     print_model_summary(std_model)
 
     # load modular model
-    mod_model = create_modular_model(model_type=model_type, num_classes=num_classes,
+    mod_model = create_modular_model(model_type=model_type, num_classes=num_classes, input_size=input_size,
                                      modular_training_mode=True)
     mod_model.load_pretrained_weights(mod_checkpoint_path)
 
@@ -193,14 +192,15 @@ def main():
 
     # if True:
     for target_classes in generate_model_composition_tasks(num_classes=num_classes):
-        _, _, test_loader = load_dataset(dataset_type=dataset_type, target_classes=target_classes,
+        _, _, _, test_loader = load_dataset(dataset_type=dataset_type, target_classes=target_classes,
                                          batch_size=batch_size, num_workers=2, train_augmentation=False)
         print(f"[Dataset {dataset_type}]- Test Dim {test_loader.dataset.data.shape}")
         composed_model = modularize_and_compose_model(model_type=model_type,
                                                       modular_model=mod_model,
                                                       modular_masks_path=modular_masks_save_path,
                                                       orig_num_classes=num_classes,
-                                                      target_classes=target_classes)
+                                                      target_classes=target_classes,
+                                                      input_size=input_size)
         evaluate_modularization_performance(std_model=std_model,
                                             modular_model=mod_model,
                                             composed_model=composed_model,

@@ -13,6 +13,7 @@ select following CIFAR10 labels for repair experiements:
 
 SELECTED_CIFAR10_STRONG_CLASSES = [0, 1, 2, 3, 4]
 SELECTED_CIFAR10_WEAK_CLASSES = [5, 6, 7, 8, 9]
+_CIFAR10_INPUT_SIZE = (3, 32, 32)
 
 
 def load_weak_cifar10_for_repair_dataset(*args, **kwargs):
@@ -75,7 +76,7 @@ def _load_weak_cifar10_for_repair_dataset(batch_size,
 
     return create_dataset_loader(train_dataset=mixed_train_dataset, test_dataset=mixed_test_dataset,
                                  target_classes=None, sample_size_per_class=None,
-                                 shuffle=False, batch_size=batch_size, num_workers=num_workers)
+                                 shuffle=False, batch_size=batch_size, num_workers=num_workers, input_size=_CIFAR10_INPUT_SIZE)
 
 
 def load_strong_cifar10_for_repair_dataset(batch_size,
@@ -93,4 +94,4 @@ def load_strong_cifar10_for_repair_dataset(batch_size,
 
     return create_dataset_loader(train_dataset=strong_cifar10_train_dataset, test_dataset=strong_cifar10_test_dataset,
                                  target_classes=None, sample_size_per_class=None,
-                                 batch_size=batch_size, num_workers=num_workers)
+                                 batch_size=batch_size, num_workers=num_workers, input_size=_CIFAR10_INPUT_SIZE)

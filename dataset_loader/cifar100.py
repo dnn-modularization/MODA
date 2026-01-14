@@ -8,6 +8,7 @@ from dataset_loader.dataset_utils import create_dataset_loader
 
 _CIFAR100_MEAN = [0.5071, 0.4867, 0.4408]
 _CIFAR100_STD = [0.2675, 0.2565, 0.2761]
+_CIFAR100_INPUT_SIZE = (3, 32, 32)
 
 
 def _get_default_cifar100_transforms():
@@ -46,4 +47,4 @@ def load_cifar100_dataset(batch_size, dataset_dir, num_workers=2, target_classes
     train_dataset, test_dataset = _load_all_cifar100_dataset(dataset_dir)
     return create_dataset_loader(train_dataset=train_dataset, test_dataset=test_dataset,
                                  target_classes=target_classes, sample_size_per_class=sample_size_per_class,
-                                 batch_size=batch_size, num_workers=num_workers)
+                                 batch_size=batch_size, num_workers=num_workers, input_size=_CIFAR100_INPUT_SIZE)

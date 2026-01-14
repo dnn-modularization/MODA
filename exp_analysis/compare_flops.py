@@ -55,7 +55,7 @@ def main():
     print(f"Raw model checkpoint path: {raw_checkpoint_path}")
     print(f"Modular model checkpoint path: {mod_checkpoint_path}")
 
-    num_classes, train_loader, _ = load_dataset(
+    input_size, num_classes, train_loader, _ = load_dataset(
         dataset_type=dataset_type,
         batch_size=batch_size,
         num_workers=2
@@ -65,6 +65,7 @@ def main():
     std_model = create_modular_model(
         model_type=model_type,
         num_classes=num_classes,
+        input_size=input_size,
         modular_training_mode=False
     )
     std_model.load_pretrained_weights(raw_checkpoint_path)
@@ -75,6 +76,7 @@ def main():
     mod_model = create_modular_model(
         model_type=model_type,
         num_classes=num_classes,
+        input_size=input_size,
         modular_training_mode=True
     )
     mod_model.load_pretrained_weights(mod_checkpoint_path)
@@ -90,11 +92,8 @@ def main():
             activation_rate_threshold=activation_rate_threshold
         )
 
-    # # random input matching CIFAR-style shape
-    # sample_input = torch.randn(1, 3, 32, 32, device=DEVICE)
-
-    # random input matching Imagenet-style shape
-    sample_input = torch.randn(1, 3, 224, 224, device=DEVICE)
+    # random input matching input shape
+    sample_input = torch.randn(1, *input_size, device=DEVICE)
 
     # total FLOPs for the standard model
     std_model.eval()
@@ -124,7 +123,7 @@ def main():
         print(
             f"COM_MODEL_FLOPS/STD_MODEL_FLOPS: "
             f"{com_total_flops}/{std_total_flops}="
-            f"{ratio:.4f}  -------- {target_classes}"
+            f"{ratio:.4f}  -------- Target Classes: {target_classes}"
         )
 
 

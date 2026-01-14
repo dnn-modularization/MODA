@@ -13,9 +13,9 @@ from models.resnet.modular_resnet_model import modular_resnet18_generator as Mod
 supported_models = ["vgg16", "resnet18", "mobilenet"]
 
 
-def create_modular_model(model_type, num_classes, modular_training_mode=False):
+def create_modular_model(model_type, num_classes, input_size=(3, 32, 32), modular_training_mode=False):
     if model_type == "vgg16":
-        model = VGG16(num_classes=num_classes, pretrained=False)
+        model = VGG16(num_classes=num_classes, input_size=input_size, pretrained=False)
     elif model_type == "resnet18":
         model = ResNet18(num_classes=num_classes)
     elif model_type == "mobilenet":
@@ -31,10 +31,11 @@ def create_modular_model(model_type, num_classes, modular_training_mode=False):
     return model
 
 
-def compose_model_from_module_masks(model_type, raw_model_params, modular_layer_masks, target_classes):
+def compose_model_from_module_masks(model_type, raw_model_params, modular_layer_masks, target_classes, input_size=(3, 32, 32)):
     if model_type == "vgg16":
         modular_model = ModularVGG16(modular_layer_masks=modular_layer_masks,
-                                     model_params=raw_model_params, modular_target_classes=target_classes)
+                                     model_params=raw_model_params, modular_target_classes=target_classes,
+                                     input_size=input_size)
     elif model_type == "resnet18":
         modular_model = ModularResNet18(modular_layer_masks=modular_layer_masks,
                                         model_params=raw_model_params, modular_target_classes=target_classes)

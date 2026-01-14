@@ -138,3 +138,4 @@ websocket-client==1.6.4
 Werkzeug==3.0.1
 widgetsnbextension==4.0.9
 zipp==3.17.0
+fvcore==0.1.5.post20221221

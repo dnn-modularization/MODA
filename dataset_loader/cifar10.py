@@ -7,6 +7,7 @@ from dataset_loader.dataset_utils import create_dataset_loader
 
 _CIFAR10_MEAN = [0.4914, 0.4822, 0.4465]
 _CIFAR10_STD = [0.2471, 0.2435, 0.2616]
+_CIFAR10_INPUT_SIZE = (3, 32, 32)
 
 
 def _get_default_cifar10_transforms():
@@ -45,4 +46,4 @@ def load_cifar10_dataset(batch_size, dataset_dir, num_workers=2, target_classes=
     train_dataset, test_dataset = _load_all_cifar10_dataset(dataset_dir)
     return create_dataset_loader(train_dataset=train_dataset, test_dataset=test_dataset,
                                  target_classes=target_classes, sample_size_per_class=sample_size_per_class,
-                                 batch_size=batch_size, num_workers=num_workers)
+                                 batch_size=batch_size, num_workers=num_workers, input_size=_CIFAR10_INPUT_SIZE)
